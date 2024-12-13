@@ -2,9 +2,7 @@
 #include <graphics.h>
 #include <cmath>
 using namespace std;
-
 static int LEFT = 1, RIGHT = 2, BOTTOM = 4, TOP = 8, xmin, ymin, xmax, ymax;
-
 int getcode(int x, int y) {
     int code = 0;
     if (y > ymax) code |= TOP;
@@ -13,11 +11,9 @@ int getcode(int x, int y) {
     if (x > xmax) code |= RIGHT;
     return code;
 }
-
 int main() {
     int gdriver = DETECT, gmode;
-    initgraph(&gdriver, &gmode, "");
-
+    initgraph(&gdriver, &gmode, (char*) NULL);
     setcolor(WHITE);
     cout << "Enter top left and bottom right coordinates of window: ";
     cin >> xmin >> ymin >> xmax >> ymax;
@@ -26,7 +22,7 @@ int main() {
     cout << "Enter the endpoints of the line: ";
     cin >> x1 >> y1 >> x2 >> y2;
 
-    outtext("Before clipping");
+    outtext((char*) "Before clipping");
     rectangle(xmin, ymin, xmax, ymax);
     line(x1, y1, x2, y2);
     delay(5000);
@@ -38,28 +34,30 @@ int main() {
     while (true) {
         if (outcode1 == 0 && outcode2 == 0) {
             accept = true;
-            break;
+            break; // both endpoints are inside the window, accept the line
         } else if ((outcode1 & outcode2) != 0) {
-            break;
+            break; // both endpoints share an outside region, reject the line
         } else {
             int x, y;
             int temp = (outcode1 != 0) ? outcode1 : outcode2;
-            float m = static_cast<float>(y2 - y1) / (x2 - x1);
+            float m = (x2 - x1) != 0 ? static_cast<float>(y2 - y1) / (x2 - x1) : 0;
 
+            // Handle intersection with window boundaries
             if (temp & TOP) {
-                x = x1 + (ymax - y1) / m;
+                x = x1 + static_cast<int>((ymax - y1) / m);
                 y = ymax;
             } else if (temp & BOTTOM) {
-                x = x1 + (ymin - y1) / m;
+                x = x1 + static_cast<int>((ymin - y1) / m);
                 y = ymin;
             } else if (temp & LEFT) {
-                x = xmin;
                 y = y1 + m * (xmin - x1);
+                x = xmin;
             } else if (temp & RIGHT) {
-                x = xmax;
                 y = y1 + m * (xmax - x1);
+                x = xmax;
             }
 
+            // Update the point based on which code is non-zero
             if (temp == outcode1) {
                 x1 = x;
                 y1 = y;
@@ -73,7 +71,7 @@ int main() {
     }
 
     cleardevice();
-    outtext("After clipping");
+    outtext((char*) "After clipping");
     rectangle(xmin, ymin, xmax, ymax);
 
     if (accept) {
