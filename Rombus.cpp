@@ -5,22 +5,20 @@ using namespace std;
 
 class Matrix {
 public:
-    float mat[3][3];
+    float mat[3][4]; // Modified to handle 4 vertices for the rhombus
 
-    // Constructor to initialize the matrix to identity matrix
     Matrix() {
         for (int i = 0; i < 3; i++) {
-            for (int j = 0; j < 3; j++) {
-                mat[i][j] = (i == j) ? 1 : 0; // Identity matrix
+            for (int j = 0; j < 4; j++) {
+                mat[i][j] = (i == j && j < 3) ? 1 : 0; // Identity matrix
             }
         }
     }
 
-    // Overloaded multiplication operator to multiply two matrices
     Matrix operator*(const Matrix& other) {
         Matrix result;
         for (int i = 0; i < 3; i++) {
-            for (int j = 0; j < 3; j++) {
+            for (int j = 0; j < 4; j++) {
                 result.mat[i][j] = 0;
                 for (int k = 0; k < 3; k++) {
                     result.mat[i][j] += mat[i][k] * other.mat[k][j];
@@ -29,186 +27,115 @@ public:
         }
         return result;
     }
-
-    // Overloaded function to apply transformation to a point
-    void applyTransformation(float &x, float &y) {
-        float newX = mat[0][0] * x + mat[0][1] * y + mat[0][2];
-        float newY = mat[1][0] * x + mat[1][1] * y + mat[1][2];
-        x = newX;
-        y = newY;
-    }
 };
 
-// Function to draw a polygon (equilateral triangle or rhombus)
-void drawPolygon(float x1, float y1, float x2, float y2, float x3, float y3, float x4 = -1, float y4 = -1, int color = RED) {
+void drawShape(const Matrix& vertices, int vertexCount, int color) {
     setcolor(color);
-    line(x1, y1, x2, y2);
-    line(x2, y2, x3, y3);
-    if (x4 != -1 && y4 != -1) {
-        line(x3, y3, x4, y4);
-        line(x4, y4, x1, y1);
-    } else {
-        line(x3, y3, x1, y1);
+    for (int i = 0; i < vertexCount; i++) {
+        int next = (i + 1) % vertexCount;
+        line(vertices.mat[0][i], vertices.mat[1][i],
+             vertices.mat[0][next], vertices.mat[1][next]);
     }
-}
-
-// Function to define and draw an equilateral triangle
-void drawEquilateralTriangle(float x, float y, float sideLength) {
-    float height = (sqrt(3) / 2) * sideLength;  // Height of the equilateral triangle
-    float x2 = x + sideLength;
-    float y2 = y;
-    float x3 = x + sideLength / 2;
-    float y3 = y - height;
-
-    drawPolygon(x, y, x2, y2, x3, y3);
-}
-
-// Function to define and draw a rhombus based on center and diagonals
-void drawRhombus(float cx, float cy, float diag1, float diag2) {
-    // Coordinates of the rhombus vertices
-    float x1 = cx, y1 = cy - diag2 / 2;  // Top vertex
-    float x2 = cx + diag1 / 2, y2 = cy;  // Right vertex
-    float x3 = cx, y3 = cy + diag2 / 2;  // Bottom vertex
-    float x4 = cx - diag1 / 2, y4 = cy;  // Left vertex
-
-    drawPolygon(x1, y1, x2, y2, x3, y3, x4, y4);
 }
 
 int main() {
-    int gd=DETECT,gm;
-    initgraph(&gd,&gm,NULL);
-    // Choosing shape to transform (Triangle or Rhombus)
+    int gd = DETECT, gm;
+    initgraph(&gd, &gm, NULL);
+
+    Matrix vertices;
     int shapeChoice;
-    cout << "Choose shape:\n1. Equilateral Triangle\n2. Rhombus\n";
+
+    cout << "Select shape to transform:\n1. Equilateral Triangle\n2. Rhombus\n";
     cin >> shapeChoice;
 
-    Matrix transformation;
-
     if (shapeChoice == 1) {
-        // Input and draw an equilateral triangle
-        float x, y, sideLength;
-        cout << "Enter the coordinates of the base of the equilateral triangle (x, y): ";
-        cin >> x >> y;
-        cout << "Enter the side length of the equilateral triangle: ";
-        cin >> sideLength;
+        // Equilateral triangle
+        cout << "Enter x1, y1: ";
+        cin >> vertices.mat[0][0] >> vertices.mat[1][0];
+        cout << "Enter side length: ";
+        float side;
+        cin >> side;
 
-        drawEquilateralTriangle(x, y, sideLength);
+        vertices.mat[0][1] = vertices.mat[0][0] + side;
+        vertices.mat[1][1] = vertices.mat[1][0];
 
-        // Transformation choices
-        int choice;
-        cout << "Enter transformation:\n1. Translation\n2. Scaling\n3. Rotation\n";
-        cin >> choice;
+        vertices.mat[0][2] = vertices.mat[0][0] + side / 2;
+        vertices.mat[1][2] = vertices.mat[1][0] - sqrt(3) * side / 2;
 
-        if (choice == 1) {  // Translation
-            float tx, ty;
-            cout << "Enter translation factors (tx, ty): ";
-            cin >> tx >> ty;
-            transformation.mat[0][2] = tx;
-            transformation.mat[1][2] = ty;
-        }
-        else if (choice == 2) {  // Scaling
-            float sx, sy;
-            cout << "Enter scaling factors (Sx, Sy): ";
-            cin >> sx >> sy;
-            transformation.mat[0][0] = sx;
-            transformation.mat[1][1] = sy;
-        }
-        else if (choice == 3) {  // Rotation
-            float angle;
-            cout << "Enter rotation angle (in degrees): ";
-            cin >> angle;
+        vertices.mat[2][0] = vertices.mat[2][1] = vertices.mat[2][2] = 1;
 
-            float radian = angle * M_PI / 180.0;
-            transformation.mat[0][0] = cos(radian);
-            transformation.mat[0][1] = -sin(radian);
-            transformation.mat[1][0] = sin(radian);
-            transformation.mat[1][1] = cos(radian);
-        }
-        else {
-            cout << "Invalid choice!";
-            closegraph();
-            return 0;
-        }
+        drawShape(vertices, 3, RED);
 
-        // Apply transformation to each vertex of the triangle
-        float x1 = x, y1 = y;
-        float x2 = x + sideLength, y2 = y;
-        float x3 = x + sideLength / 2, y3 = y - (sqrt(3) / 2) * sideLength;
+    } else if (shapeChoice == 2) {
+        // Rhombus
+        cout << "Enter bottom-left corner (x1, y1): ";
+        cin >> vertices.mat[0][0] >> vertices.mat[1][0];
+        cout << "Enter horizontal diagonal length: ";
+        float hDiagonal;
+        cin >> hDiagonal;
+        cout << "Enter vertical diagonal length: ";
+        float vDiagonal;
+        cin >> vDiagonal;
 
-        transformation.applyTransformation(x1, y1);
-        transformation.applyTransformation(x2, y2);
-        transformation.applyTransformation(x3, y3);
+        vertices.mat[0][1] = vertices.mat[0][0] + hDiagonal / 2;
+        vertices.mat[1][1] = vertices.mat[1][0] - vDiagonal / 2;
 
-        // Redraw transformed triangle
-        drawPolygon(x1, y1, x2, y2, x3, y3);
+        vertices.mat[0][2] = vertices.mat[0][0] + hDiagonal;
+        vertices.mat[1][2] = vertices.mat[1][0];
 
-    }
-    else if (shapeChoice == 2) {
-        // Input and draw a rhombus
-        float cx, cy, diag1, diag2;
-        cout << "Enter the center coordinates of the rhombus (cx, cy): ";
-        cin >> cx >> cy;
-        cout << "Enter the lengths of the diagonals (d1, d2): ";
-        cin >> diag1 >> diag2;
+        vertices.mat[0][3] = vertices.mat[0][0] + hDiagonal / 2;
+        vertices.mat[1][3] = vertices.mat[1][0] + vDiagonal / 2;
 
-        drawRhombus(cx, cy, diag1, diag2);
+        vertices.mat[2][0] = vertices.mat[2][1] = vertices.mat[2][2] = vertices.mat[2][3] = 1;
 
-        // Transformation choices
-        int choice;
-        cout << "Enter transformation:\n1. Translation\n2. Scaling\n3. Rotation\n";
-        cin >> choice;
+        drawShape(vertices, 4, RED);
 
-        if (choice == 1) {  // Translation
-            float tx, ty;
-            cout << "Enter translation factors (tx, ty): ";
-            cin >> tx >> ty;
-            transformation.mat[0][2] = tx;
-            transformation.mat[1][2] = ty;
-        }
-        else if (choice == 2) {  // Scaling
-            float sx, sy;
-            cout << "Enter scaling factors (Sx, Sy): ";
-            cin >> sx >> sy;
-            transformation.mat[0][0] = sx;
-            transformation.mat[1][1] = sy;
-        }
-        else if (choice == 3) {  // Rotation
-            float angle;
-            cout << "Enter rotation angle (in degrees): ";
-            cin >> angle;
-
-            float radian = angle * M_PI / 180.0;
-            transformation.mat[0][0] = cos(radian);
-            transformation.mat[0][1] = -sin(radian);
-            transformation.mat[1][0] = sin(radian);
-            transformation.mat[1][1] = cos(radian);
-        }
-        else {
-            cout << "Invalid choice!";
-            closegraph();
-            return 0;
-        }
-
-        // Apply transformation to each vertex of the rhombus
-        float x1 = cx, y1 = cy - diag2 / 2;
-        float x2 = cx + diag1 / 2, y2 = cy;
-        float x3 = cx, y3 = cy + diag2 / 2;
-        float x4 = cx - diag1 / 2, y4 = cy;
-
-        transformation.applyTransformation(x1, y1);
-        transformation.applyTransformation(x2, y2);
-        transformation.applyTransformation(x3, y3);
-        transformation.applyTransformation(x4, y4);
-
-        // Redraw transformed rhombus
-        drawPolygon(x1, y1, x2, y2, x3, y3, x4, y4);
-
-    }
-    else {
+    } else {
         cout << "Invalid shape choice!";
+        closegraph();
+        return 0;
     }
 
-    delay(5000);  // Wait for 5 seconds before closing
+    int choice;
+    cout << "Enter your choice:\n1. Translation\n2. Scaling\n3. Rotation\n";
+    cin >> choice;
+
+    Matrix transformation;
+    if (choice == 1) {  // Translation
+        float tx, ty;
+        cout << "Enter translation factors (tx, ty): ";
+        cin >> tx >> ty;
+
+        transformation.mat[0][2] = tx;
+        transformation.mat[1][2] = ty;
+    } else if (choice == 2) {  // Scaling
+        float sx, sy;
+        cout << "Enter scaling factors (Sx, Sy): ";
+        cin >> sx >> sy;
+
+        transformation.mat[0][0] = sx;
+        transformation.mat[1][1] = sy;
+    } else if (choice == 3) {  // Rotation
+        float angle;
+        cout << "Enter rotation angle (in degrees): ";
+        cin >> angle;
+
+        float radian = angle * M_PI / 180.0;
+        transformation.mat[0][0] = cos(radian);
+        transformation.mat[0][1] = -sin(radian);
+        transformation.mat[1][0] = sin(radian);
+        transformation.mat[1][1] = cos(radian);
+    } else {
+        cout << "Invalid transformation choice!";
+        closegraph();
+        return 0;
+    }
+
+    Matrix transformedVertices = transformation * vertices;
+
+    drawShape(transformedVertices, (shapeChoice == 1) ? 3 : 4, BLUE);
+
+    delay(5000);
     closegraph();
     return 0;
-    }
+}
